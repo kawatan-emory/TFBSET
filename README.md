@@ -1,2 +1,4 @@
 # TFBSET
-Software for TFBSET
+TFBSET is a tool for identifying enriched transcription factor binding sites (TFBS) within the promoter regions of a given human gene set. Regions that are within up to 5kb of the transcription start site of the genes and are marked by H3K27Ac and DNaseI hypersensitivity are queried for TFBSs. These are the regions that are the most likely targets of transcription factors due to open chromatin. From the entered list of genes, the TFBSs are queried and tallied. Then an equal number of genes are randomly chosen, and the TFBSs are queried and tallied. This process of selecting random genes is repeated up to 1000 times and the average number and standard deviation of each TFBS is calculated. The TFBS that were identified in the entered genes, can then be compared to the results of the random selections to identify the overrepresented TFBSs.
+
+TFBSET can be accessed from our website at http://tfbset.bmi.emory.edu/tfbset.html

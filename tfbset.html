@@ -1,0 +1,315 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+<title>Transcription Factor Enrichment</title>
+
+<script src="menu_style.js"></script>
+
+<style>
+
+p { font-size:125%;}
+
+button { font-size:100%;
+	font-family:"Veranda",San-serif;}
+
+input { font-size:100%;
+	font-family:"Veranda",San-serif;}
+
+.box
+{
+   width : 60px;
+   font-family :"Veranda",San-serif;
+   font-size : 20px;
+}
+
+
+table.relative {
+    position: relative;
+    bottom: -80px;
+    left: 20px;
+}
+
+table.absolute {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+</style>
+
+<link rel="stylesheet" href="windowfiles/dhtmlwindow.css" type="text/css" />
+<script type="text/javascript" src="windowfiles/dhtmlwindow.js">
+/***********************************************
+* DHTML Window Widget- Â© Dynamic Drive (www.dynamicdrive.com)
+* This notice must stay intact for legal use.
+* Visit http://www.dynamicdrive.com/ for full source code
+***********************************************/
+</script>
+
+</head>
+
+<body>
+
+<script src="emory_banner.js"></script>
+
+<table cellpadding="0" margin="0" cellspacing="0" width="99%">
+<tr>
+<td text="#000000"  height="20" bgcolor="3333CC" align = "center">
+<font face = "arial" color = "#FFFFFF" size = "4">
+<b>Transcription Factor Binding Site Enrichment Tool (TFBSET)</b></font>
+</td>
+</tr> 
+</table>
+
+<script src="menu.js"></script>
+
+<h1 style="text-align:center">Transcription Factor Binding Site Enrichment Tool (TFBSET)</h1>
+<blockquote><p>TFBSET is a tool for identifying enriched transcription factor binding sites (TFBS) 
+within the promoter regions of a given human gene set. Regions that are within up to 5kb of the transcription start site of the 
+genes and are marked by H3K27Ac and DNaseI hypersensitivity are queried for TFBSs. These are the regions
+that are the most likely targets of transcription factors due to open chromatin.
+From the entered list of genes, the TFBSs are queried and tallied.
+Then an equal number of genes are randomly chosen, and the TFBSs are queried and tallied. 
+This process of selecting random genes is repeated up to 1000 times and the average number and 
+standard deviation of each TFBS is calculated. 
+The TFBS that were identified in the entered genes, can then be compared to the results 
+of the random selections to identify the overrepresented TFBSs.
+</p></blockquote>
+
+
+<form id="input_form" name="input_form" onsubmit="return validateForm()" method="post" action="tfbset.php">
+<p style="margin-left:180px">Enter 
+ <select style='font-size:100%;font-family:"Veranda",San-serif;' name="gene_input">
+  <option value="gene_symbol">gene symbols</option>
+  <option value="entrez">Entrez gene IDs</option>
+  <option value="ensembl">ensembl gene IDs</option>
+  <option value="refseql">RefSeq IDs</option>
+</select> 
+ below<span style="color:red"><b>*</b></span>:</p>
+<p align="center">
+<textarea name="gene_symbols" id="gene_symbols" rows="10"  style="width:600px;height:100px;font-family:Times New Roman" cols="120"  value="" title="Enter gene symbols here."></textarea>
+<br>
+<button type="button" onclick="SelectDataFile()" title="Load a gene list from a local data file"> Load data from file...</button>
+<button type="button" onclick="clear_data()" title="Clear the gene list"> Clear data</button>
+<button type="button" onclick="example_data()" title="Example gene list"> Example data</button>
+<button type="button" onclick="check_job_status()" title="Check job status"> Check job status</button>
+<br>
+Random permutations: <input name="Replicates" id="Replicates" type="number"min="0" max="1000" step="100" title="Number of replicates" class="box" value="500"></input>
+False discovery rate (%): <input name="false_positive"   id="false_positive" type="number" min="0" max="100" title="Only report TFBS that have a false positive rate less than this number." class="box" value="3"></input>
+Minimum % of genes: <input name="percent_of_genes" id="percent_of_genes" type="number" min="0" max="100" title="Only report the TFBS that are in at least this percent of the genes." class="box" value="50"></input>
+Region around TSS: <input name="txs_region" id="txs_region" type="number" min="100" max="5000" step="100" title="Query the region +/- this number of nucleotides from the transcription start site. Enter a value that is a multiple of 100." class="box" value="5000"></input>
+<!-- Include enhancer regions: <input type="checkbox" name="enhancer" value="X"> -->
+<br>
+Minimum core matrix score: <input name="core_score"  type="number" step="0.01" min="0" max="1" title="Minimum core matrix score" class="box" value="0.9"></input>
+
+Minimum complete matrix score: <input name="matrix_score" type="number" step="0.01" min="0" max="1" title="Minimum compete matrix score" class="box" value="0.8"></input>
+<br>
+Email address to send results<span style="color:red"><b>*</b></span>: <input name="email_addr" type="email" title="Email address to send results"></input>
+Job name <span style="color:red"><b>*</b></span>: <input name="job_name" type="text" title="Job name"></input>
+
+<br>
+<INPUT type="submit" name="submit" value="Submit Genes" id="Submit"   title="Click here to submit gene symbols for enrichment analysis."></INPUT> 
+</p>
+
+
+<input id="date_time" name="date_time" type="hidden"></input>
+</form>
+
+<script>
+document.getElementById("date_time").value = Date();
+</script>
+
+
+<!-- This LoadGenesData item stores the file name -->
+<INPUT TYPE="file" name="LoadGenesData" Id="LoadGenesData" style="display:none"></input>
+
+
+<div id="somediv" style="display:none">
+<p>Select Job(s) to Cancel</p>
+
+<form action="cancel_jobs.php" method="post">
+<table id="job_table" name="job_table" border="1" style="width:95%">
+  <tr>
+    <th>Job Name</th>
+    <th>Status</th>
+    <th>Cancel</th>
+  </tr>
+</table>
+<br>
+<br>
+
+<table id="button_table" name="button_table" style="width:90%" class="absolute">
+  <tr>
+	<td>
+	<input type="button" value="Cancel Selected Jobs" onclick="cancel_jobs()"> 
+	</td>
+
+	<td>
+	<input type="button" value="Close Window" onclick="divwin.hide()" > 
+	</td>
+  </tr>
+</table>
+
+
+
+</form> 
+
+</div>
+
+<script>
+function check_job_status() {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+
+		var jobs = this.responseText;
+		var job_strings = jobs.split("\n");
+		var num_jobs = job_strings.length;
+
+		if ((num_jobs <= 0) || (jobs == ""))
+			{ alert("No Jobs in Progress"); return; }
+
+		var table = document.getElementById("job_table");
+		for (var index = 0; index < num_jobs; index+=1) {
+		        var rowCount = table.rows.length;
+			var row = table.insertRow(rowCount);
+			var job_cells = job_strings[index].split("|");
+
+		        row.insertCell(0).innerHTML= job_cells[1];
+
+		        row.insertCell(1).innerHTML= job_cells[2];
+
+			check_cell = row.insertCell(2);
+			var chk1=document.createElement("input");
+			chk1.type = "checkbox";
+			chk1.value = job_cells[0];
+			chk1.id = "check"+index;
+			chk1.name = "check"+index;
+			check_cell.appendChild(chk1);
+		} //endfor 
+
+		divwin=dhtmlwindow.open('divbox', 'div', 'somediv', 'Job Status', 'width=500px,height=300px,resize=1,scrolling=1,center=1');
+		divwin.onclose=function(){
+		location.reload();  // due to a bug in dhtml windows, I have to reload the page after close
+		return;
+		}
+
+            }
+        }; //end function
+
+        xmlhttp.open("POST", "tfbset_check_job.php" , true);
+        xmlhttp.send();
+
+} //end check_job_status
+
+
+function cancel_jobs() {
+	if (! confirm("Are you sure you want to cancel your job(s)?"))
+	{ return; }
+
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+               alert( this.responseText);
+		location.reload();	// due to a bug in dhtml windows, I have to reload the page after submit
+            }
+        };
+
+
+	var table = document.getElementById("job_table");
+	var param1 = "";
+	var num_rows = table.rows.length;
+	var index = 0;
+
+	var row_num = 1;
+	while (row_num < num_rows)
+	{
+		var filename = document.getElementById("check"+index).value;
+		if (document.getElementById("check"+index).checked)
+		{
+		param1 = param1+table.rows[row_num].cells[0].innerHTML + "|" + filename + "\n";
+		table.deleteRow(row_num);
+		num_rows = num_rows - 1;
+		}
+		else
+		{
+		row_num = row_num + 1;
+		} //endif
+
+		index = index + 1;
+	} //endwhile
+//        alert("param1:"+param1);
+	divwin.hide();
+
+        xmlhttp.open("POST", "tfbset_cancel_jobs.php", true);
+	xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+	xmlhttp.send("param1="+param1);
+}
+
+function validateForm() {
+    var em = document.forms["input_form"]["email_addr"].value;
+    var genes = document.forms["input_form"]["gene_symbols"].value;
+    var job = document.forms["input_form"]["job_name"].value;
+    if (genes == "") {
+        alert("At least one gene must be entered.");
+        return false;
+    }
+
+	var lines = genes.split("\n");
+	var count = lines.length;
+	if (count > 500) {
+		alert("Gene count must be less than 500."); 
+		return false;
+		}
+
+    if (em == "") {
+        alert("Email address must be entered.");
+        return false;
+    }
+
+    if (job == "") {
+        alert("A job name must be entered.");
+        return false;
+    }
+}
+
+
+function clear_data(){
+	document.getElementById("gene_symbols").value="";
+}
+
+function example_data(){
+	document.getElementById("gene_symbols").value="";
+	document.getElementById("gene_symbols").value = "#Example data\nCDKN2A\nCAD\nCDC25A\nCCNA1\nDHFR\nBCAT1\nEIF4E\nRCC1";
+}
+
+function SelectDataFile(){
+	document.getElementById("LoadGenesData").value="";
+	document.getElementById("LoadGenesData").click();
+}
+
+function readSingleFile(e) {
+  var file = e.target.files[0];
+  if (!file) {
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var contents = e.target.result;
+    document.getElementById("gene_symbols").value = contents;
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('LoadGenesData')
+  .addEventListener('change', readSingleFile, false);
+
+  
+</script>
+
+
+</body>
+
+</html>
